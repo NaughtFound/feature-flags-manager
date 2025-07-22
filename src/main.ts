@@ -1,8 +1,25 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import apiConfig from './api/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3000);
+
+  app.useGlobalPipes(new ValidationPipe({ stopAtFirstError: true }));
+
+  const configService = app.get<ConfigService>(ConfigService);
+  const data = apiConfig(configService);
+
+  app.enableCors({
+    origin: data?.cors_origin,
+    credentials: true,
+  });
+
+  const port = data?.port ?? 3000;
+  const host = data?.host ?? 'localhost';
+
+  await app.listen(port, host);
 }
 bootstrap();

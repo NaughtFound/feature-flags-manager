@@ -7,13 +7,17 @@ import {
 import { Request, Response } from 'express';
 import { DetailedError } from './detailed.error';
 import { QueryFailedError } from 'typeorm';
+import { AuditService } from '@app/audit/audit.service';
 
 @Catch()
 export class ThrowExceptionFilter implements ExceptionFilter {
-  catch(exception: any, host: ArgumentsHost) {
+  constructor(private readonly auditService: AuditService) {}
+
+  async catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    const user = (request as any).user;
 
     console.log(exception);
 
@@ -38,6 +42,17 @@ export class ThrowExceptionFilter implements ExceptionFilter {
         parameters: exception.parameters,
       };
     }
+
+    await this.auditService.log({
+      userId: user?.id,
+      operation: request.url,
+      entityType: 'Error',
+      reason: message,
+      metadata: {
+        status,
+        ...details,
+      },
+    });
 
     response.status(status).json({
       statusCode: status,

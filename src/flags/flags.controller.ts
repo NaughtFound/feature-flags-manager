@@ -7,11 +7,13 @@ import {
   Post,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { FlagsService } from './flags.service';
 import { CreateFlagDto } from './dto/create.dto';
 import { apiResponse } from '@app/utils/response';
+import { JwtAuthGuard } from '@app/auth/jwt-auth.guard';
 
 @Controller('flags')
 export class FlagsController {
@@ -36,6 +38,7 @@ export class FlagsController {
   }
 
   @Post('/')
+  @UseGuards(JwtAuthGuard)
   async createFlag(@Body() body: CreateFlagDto, @Res() res: Response) {
     await this.flagsService.createFlag(
       body.label,
@@ -50,6 +53,7 @@ export class FlagsController {
   }
 
   @Post('/:id/activate')
+  @UseGuards(JwtAuthGuard)
   async activateFlag(@Param('id') id: number, @Res() res: Response) {
     await this.flagsService.activateFlag(id);
 
@@ -59,6 +63,7 @@ export class FlagsController {
   }
 
   @Post('/:id/deactivate')
+  @UseGuards(JwtAuthGuard)
   async deactivateFlag(
     @Param('id') id: number,
     @Query('auto-disable') autoDisable: boolean = false,
@@ -72,6 +77,7 @@ export class FlagsController {
   }
 
   @Post('/:id/update')
+  @UseGuards(JwtAuthGuard)
   async updateDependencies(
     @Param('id') id: number,
     @Body('dependencies') dependencies: number[],

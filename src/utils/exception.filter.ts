@@ -3,6 +3,7 @@ import {
   Catch,
   ArgumentsHost,
   HttpException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { DetailedError } from './detailed.error';
@@ -41,6 +42,10 @@ export class ThrowExceptionFilter implements ExceptionFilter {
       details = {
         parameters: exception.parameters,
       };
+    }
+    if (exception instanceof UnauthorizedException) {
+      status = exception.getStatus();
+      message = exception.message;
     }
 
     await this.auditService.log({

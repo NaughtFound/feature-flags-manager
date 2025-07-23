@@ -35,4 +35,18 @@ export class AuditService {
 
     await this.auditRepo.save(log);
   }
+
+  async fetch(options: {
+    entityId?: number;
+    entityType?: string;
+    userId?: number;
+  }) {
+    const logs = await this.auditRepo.findBy({
+      entityId: options.entityId,
+      entityType: options.entityType,
+      userId: options.userId,
+    });
+
+    return logs;
+  }
 }

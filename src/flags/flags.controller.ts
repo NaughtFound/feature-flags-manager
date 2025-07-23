@@ -164,4 +164,36 @@ export class FlagsController {
       message: 'Dependencies updated successfully',
     });
   }
+
+  @Get('/audit/history')
+  @UseGuards(JwtAuthGuard)
+  async getHistory(
+    @AuthUser() user: User,
+    @Res() res: Response,
+    @Query('user-id') userId?: number,
+    @Query('entity-id') entityId?: number,
+  ) {
+    const logs = await this.auditService.fetch({
+      entityType: 'Flag',
+      entityId,
+      userId,
+    });
+
+    await this.auditService.log({
+      userId: user.id,
+      operation: 'Reading Audit History',
+      entityType: 'Flag',
+      metadata: {
+        entityId,
+        userId,
+      },
+      reason: 'User requested to read audit history',
+    });
+
+    return apiResponse(res, {
+      data: {
+        logs,
+      },
+    });
+  }
 }

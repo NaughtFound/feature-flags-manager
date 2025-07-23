@@ -82,7 +82,7 @@ export class FlagsService {
     });
   }
 
-  async activateFlag(id: number) {
+  async findFlag(id: number) {
     const flag = await this.flagRepo.findOne({
       where: {
         id,
@@ -93,6 +93,12 @@ export class FlagsService {
     });
 
     if (flag == null) throw Error('Flag not found');
+
+    return flag;
+  }
+
+  async activateFlag(id: number) {
+    const flag = await this.findFlag(id);
 
     for (const parent of flag.dependencies) {
       if (parent.isActive) continue;

@@ -75,7 +75,7 @@ export class FlagsService {
       }
     }
 
-    this.flagRepo.create({
+    await this.flagRepo.save({
       label,
       isActive,
       dependencies: parents,

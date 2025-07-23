@@ -20,7 +20,6 @@ describe('FlagsService', () => {
           provide: getRepositoryToken(Flag),
           useValue: {
             find: jest.fn(),
-            create: jest.fn(),
             findOne: jest.fn(),
             save: jest.fn(),
             update: jest.fn(),
@@ -103,7 +102,7 @@ describe('FlagsService', () => {
 
     await service.createFlag('C', true, [1]);
 
-    expect(flagRepo.create).toHaveBeenCalledWith({
+    expect(flagRepo.save).toHaveBeenCalledWith({
       label: 'C',
       isActive: true,
       dependencies: [flagA],
@@ -118,7 +117,7 @@ describe('FlagsService', () => {
       'Dependency not found',
     );
 
-    expect(flagRepo.create).not.toHaveBeenCalled();
+    expect(flagRepo.save).not.toHaveBeenCalled();
   });
 
   it('should throw if dependency is not active for newly active flag', async () => {
@@ -134,7 +133,7 @@ describe('FlagsService', () => {
       'You cannot create this as an active flag',
     );
 
-    expect(flagRepo.create).not.toHaveBeenCalled();
+    expect(flagRepo.save).not.toHaveBeenCalled();
   });
 
   it('should find the correct flag', async () => {

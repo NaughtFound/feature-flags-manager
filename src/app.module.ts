@@ -7,6 +7,8 @@ import { Flag } from './db/entities/flag.entity';
 import { FlagsModule } from './flags/flags.module';
 import { UsersModule } from './users/users.module';
 import { User } from './db/entities/user.entity';
+import { AuditLog } from './db/entities/log.entity';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
@@ -26,13 +28,14 @@ import { User } from './db/entities/user.entity';
           username: data!.username,
           password: data!.password,
           database: data!.db_name,
-          entities: [Flag, User],
+          entities: [Flag, User, AuditLog],
           synchronize: true,
         };
       },
     }),
     FlagsModule,
     UsersModule,
+    AuditModule,
   ],
 })
 export class AppModule {}

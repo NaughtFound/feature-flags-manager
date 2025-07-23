@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { FlagsService } from './flags.service';
 import { CreateFlagDto } from './dto/create.dto';
 
@@ -13,6 +13,13 @@ export class FlagsController {
     return flags;
   }
 
+  @Get('/:id')
+  async getFlagInfo(@Param('id') id: number) {
+    const flag = await this.flagsService.findFlag(id);
+
+    return flag;
+  }
+
   @Post('/')
   async createFlag(@Body() body: CreateFlagDto) {
     await this.flagsService.createFlag(
@@ -20,5 +27,18 @@ export class FlagsController {
       body.isActive,
       body.dependencies,
     );
+  }
+
+  @Post('/:id/activate')
+  async activateFlag(@Param('id') id: number) {
+    await this.flagsService.activateFlag(id);
+  }
+
+  @Post('/:id/deactivate')
+  async deactivateFlag(
+    @Param('id') id: number,
+    @Query('auto-disable') autoDisable: boolean = false,
+  ) {
+    await this.flagsService.deactivateFlag(id, autoDisable);
   }
 }

@@ -5,6 +5,7 @@ import configuration from './config/configuration';
 import databaseConfig from './db/config';
 import { Flag } from './db/entities/flag.entity';
 import { FlagsModule } from './flags/flags.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { FlagsModule } from './flags/flags.module';
       },
     }),
     FlagsModule,
+    UsersModule,
   ],
 })
 export class AppModule {}

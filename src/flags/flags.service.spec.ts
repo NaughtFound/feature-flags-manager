@@ -21,6 +21,8 @@ describe('FlagsService', () => {
           useValue: {
             find: jest.fn(),
             create: jest.fn(),
+            findOne: jest.fn(),
+            save: jest.fn(),
           },
         },
       ],
@@ -130,5 +132,60 @@ describe('FlagsService', () => {
     );
 
     expect(flagRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('should activate a flag when all dependencies are active', async () => {
+    const flagA: Flag = {
+      id: 1,
+      label: 'A',
+      isActive: true,
+      dependencies: [],
+    };
+    const flagB: Flag = {
+      id: 2,
+      label: 'B',
+      isActive: false,
+      dependencies: [flagA],
+    };
+
+    flagRepo.findOne.mockResolvedValue(flagB);
+
+    await service.activateFlag(2);
+
+    expect(flagB.isActive).toBe(true);
+    expect(flagRepo.save).toHaveBeenCalledWith({
+      ...flagB,
+      isActive: true,
+    });
+  });
+
+  it('should throw if flag not found', async () => {
+    flagRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.activateFlag(999)).rejects.toThrow('Flag not found');
+    expect(flagRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('should throw if any dependency is inactive', async () => {
+    const flagA: Flag = {
+      id: 1,
+      label: 'A',
+      isActive: false,
+      dependencies: [],
+    };
+    const flagB: Flag = {
+      id: 2,
+      label: 'B',
+      isActive: false,
+      dependencies: [flagA],
+    };
+
+    flagRepo.findOne.mockResolvedValue(flagB);
+
+    await expect(service.activateFlag(2)).rejects.toThrow(
+      'You cannot activate this flag',
+    );
+
+    expect(flagRepo.save).not.toHaveBeenCalled();
   });
 });

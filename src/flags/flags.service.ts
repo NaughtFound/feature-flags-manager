@@ -81,4 +81,26 @@ export class FlagsService {
       dependencies: parents,
     });
   }
+
+  async activateFlag(id: number) {
+    const flag = await this.flagRepo.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        dependencies: true,
+      },
+    });
+
+    if (flag == null) throw Error('Flag not found');
+
+    for (const parent of flag.dependencies) {
+      if (parent.isActive) continue;
+      throw Error('You cannot activate this flag');
+    }
+
+    flag.isActive = true;
+
+    await this.flagRepo.save(flag);
+  }
 }

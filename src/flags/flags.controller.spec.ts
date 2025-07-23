@@ -3,6 +3,8 @@ import { FlagsController } from './flags.controller';
 import { FlagsService } from './flags.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Flag } from '@app/db/entities/flag.entity';
+import { AuditLog } from '@app/db/entities/log.entity';
+import { AuditService } from '@app/audit/audit.service';
 
 describe('FlagsController', () => {
   let controller: FlagsController;
@@ -11,6 +13,13 @@ describe('FlagsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FlagsController],
       providers: [
+        AuditService,
+        {
+          provide: getRepositoryToken(AuditLog),
+          useValue: {
+            save: jest.fn(),
+          },
+        },
         {
           provide: getRepositoryToken(Flag),
           useValue: {

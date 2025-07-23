@@ -3,6 +3,8 @@ import { FlagsService } from './flags.service';
 import { Flag, FlagRepo } from '@app/db/entities/flag.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { topologicalSort } from '@app/utils';
+import { AuditService } from '@app/audit/audit.service';
+import { AuditLog } from '@app/db/entities/log.entity';
 
 jest.mock('@app/utils', () => ({
   topologicalSort: jest.fn(),
@@ -16,6 +18,13 @@ describe('FlagsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FlagsService,
+        AuditService,
+        {
+          provide: getRepositoryToken(AuditLog),
+          useValue: {
+            save: jest.fn(),
+          },
+        },
         {
           provide: getRepositoryToken(Flag),
           useValue: {
@@ -97,16 +106,25 @@ describe('FlagsService', () => {
       dependencies: [],
     };
     const flagB: Flag = { id: 2, label: 'B', isActive: true, dependencies: [] };
+    const flagC: Flag = {
+      id: 3,
+      label: 'C',
+      isActive: true,
+      dependencies: [flagA],
+    };
 
     jest.spyOn(service, 'listFlags').mockResolvedValue([flagA, flagB]);
+    flagRepo.save.mockResolvedValue(flagC);
 
-    await service.createFlag('C', true, [1]);
+    const result = await service.createFlag('C', true, [1]);
 
     expect(flagRepo.save).toHaveBeenCalledWith({
       label: 'C',
       isActive: true,
       dependencies: [flagA],
     });
+
+    expect(result).toEqual(flagC);
   });
 
   it('should throw if dependency is not valid', async () => {

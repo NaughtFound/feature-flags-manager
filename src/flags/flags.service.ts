@@ -78,11 +78,13 @@ export class FlagsService {
       }
     }
 
-    await this.flagRepo.save({
+    const flag = await this.flagRepo.save({
       label,
       isActive,
       dependencies: parents,
     });
+
+    return flag;
   }
 
   async findFlag(id: number) {

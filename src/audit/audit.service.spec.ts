@@ -11,7 +11,9 @@ describe('AuditService', () => {
       providers: [
         {
           provide: getRepositoryToken(AuditLog),
-          useValue: {},
+          useValue: {
+            save: jest.fn(),
+          },
         },
         AuditService,
       ],

@@ -268,4 +268,88 @@ describe('FlagsService', () => {
       isActive: false,
     });
   });
+
+  it('should update dependencies successfully', async () => {
+    const flagA: Flag = {
+      id: 1,
+      label: 'A',
+      isActive: true,
+      dependencies: [],
+    };
+
+    const flagB: Flag = {
+      id: 2,
+      label: 'B',
+      isActive: true,
+      dependencies: [],
+    };
+
+    const flagC: Flag = {
+      id: 3,
+      label: 'C',
+      isActive: true,
+      dependencies: [],
+    };
+
+    jest.spyOn(service, 'findFlag').mockResolvedValue(flagA);
+    jest.spyOn(service, 'listFlags').mockResolvedValue([flagA, flagB, flagC]);
+    (service.findChildren as jest.Mock).mockResolvedValue([]);
+
+    await service.updateDependencies(1, [2, 3]);
+
+    expect(flagA.dependencies).toEqual([flagB, flagC]);
+    expect(flagRepo.save).toHaveBeenCalledWith(flagA);
+  });
+
+  it('should throw if dependency is not valid', async () => {
+    const flagA: Flag = { id: 1, label: 'A', isActive: true, dependencies: [] };
+
+    jest.spyOn(service, 'findFlag').mockResolvedValue(flagA);
+    jest.spyOn(service, 'listFlags').mockResolvedValue([flagA]);
+
+    await expect(service.updateDependencies(1, [2])).rejects.toThrow(
+      'Dependency not found',
+    );
+
+    expect(flagRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('should throw if circular dependency is detected', async () => {
+    const flagA: Flag = {
+      id: 1,
+      label: 'A',
+      isActive: true,
+      dependencies: [],
+    };
+
+    const flagB: Flag = {
+      id: 2,
+      label: 'B',
+      isActive: true,
+      dependencies: [flagA],
+    };
+
+    const flagC: Flag = {
+      id: 3,
+      label: 'C',
+      isActive: true,
+      dependencies: [flagB],
+    };
+
+    jest.spyOn(service, 'findFlag').mockResolvedValue(flagA);
+    jest.spyOn(service, 'listFlags').mockResolvedValue([flagA, flagB, flagC]);
+    (service.findChildren as jest.Mock).mockImplementation(
+      async (id: number) => {
+        if (id == 1) return [flagB];
+        if (id == 2) return [flagC];
+        if (id == 3) return [];
+      },
+    );
+
+    await expect(service.updateDependencies(1, [3])).rejects.toThrow(
+      /Circular dependency detected/,
+    );
+
+    expect(flagRepo.save).not.toHaveBeenCalled();
+  });
 });

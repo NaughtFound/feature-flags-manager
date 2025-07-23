@@ -161,4 +161,59 @@ export class FlagsService {
       isActive: false,
     });
   }
+
+  async updateDependencies(id: number, dependencies: number[]) {
+    const flag = await this.findFlag(id);
+    const flags = await this.listFlags();
+    const n = flags.length;
+
+    const flagIndex = new Map<number, number>();
+
+    for (let i = 0; i < n; i++) {
+      const u = flags[i];
+      flagIndex.set(u.id, i);
+    }
+
+    const cid = flagIndex.get(flag.id)!;
+
+    for (const d of dependencies) {
+      if (flagIndex.has(d)) continue;
+      throw Error('Dependency not found');
+    }
+
+    const parents = dependencies.map((index) => {
+      const p = flagIndex.get(index)!;
+      return flags[p];
+    });
+
+    const stack: number[] = [flag.id];
+    const visited = new Set<number>();
+    const shouldCheck: number[] = [];
+
+    for (const parent of parents) {
+      if (flagIndex.get(parent.id)! < cid) continue;
+      shouldCheck.push(parent.id);
+    }
+
+    while (stack.length > 0) {
+      const cid = stack.pop()!;
+      if (visited.has(cid)) continue;
+      visited.add(cid);
+
+      const children = await this.findChildren(cid);
+
+      for (const child of children) {
+        if (visited.has(child.id)) continue;
+        if (shouldCheck.includes(child.id))
+          throw Error(
+            `Circular dependency detected. Cannot add ${child.label} as a dependency`,
+          );
+        stack.push(child.id);
+      }
+    }
+
+    flag.dependencies = parents;
+
+    await this.flagRepo.save(flag);
+  }
 }

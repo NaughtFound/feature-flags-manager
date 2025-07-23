@@ -4,6 +4,7 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import configuration from './config/configuration';
 import databaseConfig from './db/config';
 import { Flag } from './db/entities/flag.entity';
+import { FlagsModule } from './flags/flags.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { Flag } from './db/entities/flag.entity';
         };
       },
     }),
+    FlagsModule,
   ],
 })
 export class AppModule {}

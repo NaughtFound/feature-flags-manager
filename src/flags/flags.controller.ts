@@ -172,9 +172,10 @@ export class FlagsController {
     @Res() res: Response,
     @Query('user-id') userId?: number,
     @Query('entity-id') entityId?: number,
+    @Query('only-error') onlyError: boolean = false,
   ) {
     const logs = await this.auditService.fetch({
-      entityType: 'Flag',
+      entityType: onlyError ? 'Error' : 'Flag',
       entityId,
       userId,
     });

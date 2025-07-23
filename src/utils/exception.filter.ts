@@ -5,6 +5,7 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { DetailedError } from './detailed.error';
 
 @Catch()
 export class ThrowExceptionFilter implements ExceptionFilter {
@@ -12,19 +13,28 @@ export class ThrowExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const status =
-      exception instanceof HttpException ? exception.getStatus() : 500;
 
+    let status = 500;
     let message: any = 'Internal server error';
 
-    if (exception instanceof HttpException) message = exception.getResponse();
-    if (exception instanceof Error) message = exception.message;
+    let details = {};
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      message = exception.getResponse();
+    }
+    if (exception instanceof DetailedError) {
+      status = exception.code;
+      message = exception.message;
+      details = exception.details || {};
+    }
 
     response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
       message,
+      ...details,
     });
   }
 }

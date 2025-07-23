@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Flag, FlagRepo } from '@app/db/entities/flag.entity';
 import { topologicalSort } from '@app/utils';
+import { DetailedError } from '@app/utils/detailed.error';
 
 @Injectable()
 export class FlagsService {
@@ -60,7 +61,9 @@ export class FlagsService {
 
     for (const d of dependencies) {
       if (flagIndex.has(d)) continue;
-      throw Error('Dependency not found');
+      throw new DetailedError('Dependency not found', {
+        code: HttpStatus.NOT_FOUND,
+      });
     }
 
     const parents = dependencies.map((index) => {
@@ -71,7 +74,7 @@ export class FlagsService {
     if (isActive) {
       for (const parent of parents) {
         if (parent.isActive) continue;
-        throw Error('You cannot create this as an active flag');
+        throw new DetailedError('You cannot create this as an active flag');
       }
     }
 
@@ -92,7 +95,8 @@ export class FlagsService {
       },
     });
 
-    if (flag == null) throw Error('Flag not found');
+    if (flag == null)
+      throw new DetailedError('Flag not found', { code: HttpStatus.NOT_FOUND });
 
     return flag;
   }
@@ -118,10 +122,24 @@ export class FlagsService {
   async activateFlag(id: number) {
     const flag = await this.findFlag(id);
 
+    let shouldThrow = false;
+    const missingDependencies: object[] = [];
+
     for (const parent of flag.dependencies) {
       if (parent.isActive) continue;
-      throw Error('You cannot activate this flag');
+      shouldThrow = true;
+      missingDependencies.push({
+        id: parent.id,
+        label: parent.label,
+      });
     }
+
+    if (shouldThrow)
+      throw new DetailedError('You cannot activate this flag', {
+        details: {
+          missingDependencies,
+        },
+      });
 
     flag.isActive = true;
 
@@ -133,7 +151,7 @@ export class FlagsService {
     const hasChildren = await this.hasChildren(id);
 
     if (hasChildren && !autoDisable)
-      throw Error(
+      throw new DetailedError(
         'You cannot disable this flag with autoDisable=false. Try autoDisable=True',
       );
 
@@ -178,7 +196,9 @@ export class FlagsService {
 
     for (const d of dependencies) {
       if (flagIndex.has(d)) continue;
-      throw Error('Dependency not found');
+      throw new DetailedError('Dependency not found', {
+        code: HttpStatus.NOT_FOUND,
+      });
     }
 
     const parents = dependencies.map((index) => {
@@ -190,13 +210,19 @@ export class FlagsService {
     const visited = new Set<number>();
     const shouldCheck: number[] = [];
 
+    let shouldThrow = false;
+    const badFlags: object[] = [];
+
     for (const parent of parents) {
       const pid = flagIndex.get(parent.id)!;
       if (pid < cid) continue;
-      if (pid == cid)
-        throw Error(
-          `Circular dependency detected. Cannot add ${parent.label} as a dependency`,
-        );
+      if (pid == cid) {
+        shouldThrow = true;
+        badFlags.push({
+          id: parent.id,
+          label: parent.label,
+        });
+      }
 
       shouldCheck.push(parent.id);
     }
@@ -210,13 +236,23 @@ export class FlagsService {
 
       for (const child of children) {
         if (visited.has(child.id)) continue;
-        if (shouldCheck.includes(child.id))
-          throw Error(
-            `Circular dependency detected. Cannot add ${child.label} as a dependency`,
-          );
+        if (shouldCheck.includes(child.id)) {
+          shouldThrow = true;
+          badFlags.push({
+            id: child.id,
+            label: child.label,
+          });
+        }
         stack.push(child.id);
       }
     }
+
+    if (shouldThrow)
+      throw new DetailedError(`Circular dependency detected`, {
+        details: {
+          badFlags,
+        },
+      });
 
     flag.dependencies = parents;
 

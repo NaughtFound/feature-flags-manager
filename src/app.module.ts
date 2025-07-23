@@ -6,6 +6,7 @@ import databaseConfig from './db/config';
 import { Flag } from './db/entities/flag.entity';
 import { FlagsModule } from './flags/flags.module';
 import { UsersModule } from './users/users.module';
+import { User } from './db/entities/user.entity';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { UsersModule } from './users/users.module';
           username: data!.username,
           password: data!.password,
           database: data!.db_name,
-          entities: [Flag],
+          entities: [Flag, User],
           synchronize: true,
         };
       },

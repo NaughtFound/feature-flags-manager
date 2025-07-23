@@ -41,4 +41,12 @@ export class FlagsController {
   ) {
     await this.flagsService.deactivateFlag(id, autoDisable);
   }
+
+  @Post('/:id/update')
+  async updateDependencies(
+    @Param('id') id: number,
+    @Body('dependencies') dependencies: number[],
+  ) {
+    await this.flagsService.updateDependencies(id, dependencies);
+  }
 }

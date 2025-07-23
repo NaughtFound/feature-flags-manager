@@ -191,7 +191,13 @@ export class FlagsService {
     const shouldCheck: number[] = [];
 
     for (const parent of parents) {
-      if (flagIndex.get(parent.id)! < cid) continue;
+      const pid = flagIndex.get(parent.id)!;
+      if (pid < cid) continue;
+      if (pid == cid)
+        throw Error(
+          `Circular dependency detected. Cannot add ${parent.label} as a dependency`,
+        );
+
       shouldCheck.push(parent.id);
     }
 

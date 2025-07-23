@@ -18,9 +18,9 @@ export class Flag {
   @Column({ default: true })
   isActive: boolean;
 
-  @ManyToMany(() => Flag, (flag) => flag.parents)
+  @ManyToMany(() => Flag, (flag) => flag.dependencies)
   @JoinTable()
-  parents: Flag[];
+  dependencies: Flag[];
 }
 
 export type FlagRepo = Repository<Flag>;

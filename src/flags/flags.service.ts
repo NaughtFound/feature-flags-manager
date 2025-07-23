@@ -42,4 +42,43 @@ export class FlagsService {
 
     return order.map((index) => flags[index]);
   }
+
+  async createFlag(
+    label: string,
+    isActive: boolean = true,
+    dependencies: number[] = [],
+  ) {
+    const flags = await this.listFlags();
+    const n = flags.length;
+
+    const flagIndex = new Map<number, number>();
+
+    for (let i = 0; i < n; i++) {
+      const u = flags[i];
+      flagIndex.set(u.id, i);
+    }
+
+    for (const d of dependencies) {
+      if (flagIndex.has(d)) continue;
+      throw Error('Dependency not found');
+    }
+
+    const parents = dependencies.map((index) => {
+      const p = flagIndex.get(index)!;
+      return flags[p];
+    });
+
+    if (isActive) {
+      for (const parent of parents) {
+        if (parent.isActive) continue;
+        throw Error('You cannot create this as an active flag');
+      }
+    }
+
+    this.flagRepo.create({
+      label,
+      isActive,
+      dependencies: parents,
+    });
+  }
 }

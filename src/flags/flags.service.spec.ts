@@ -20,6 +20,7 @@ describe('FlagsService', () => {
           provide: getRepositoryToken(Flag),
           useValue: {
             find: jest.fn(),
+            create: jest.fn(),
           },
         },
       ],
@@ -82,5 +83,52 @@ describe('FlagsService', () => {
     ]);
 
     expect(result).toEqual([flagA, flagB, flagD, flagC]);
+  });
+
+  it('should create a flag with correct dependencies', async () => {
+    const flagA: Flag = {
+      id: 1,
+      label: 'A',
+      isActive: true,
+      dependencies: [],
+    };
+    const flagB: Flag = { id: 2, label: 'B', isActive: true, dependencies: [] };
+
+    jest.spyOn(service, 'listFlags').mockResolvedValue([flagA, flagB]);
+
+    await service.createFlag('C', true, [1]);
+
+    expect(flagRepo.create).toHaveBeenCalledWith({
+      label: 'C',
+      isActive: true,
+      dependencies: [flagA],
+    });
+  });
+
+  it('should throw if dependency is not valid', async () => {
+    const flagA: Flag = { id: 1, label: 'A', isActive: true, dependencies: [] };
+    jest.spyOn(service, 'listFlags').mockResolvedValue([flagA]);
+
+    await expect(service.createFlag('C', true, [2])).rejects.toThrow(
+      'Dependency not found',
+    );
+
+    expect(flagRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('should throw if dependency is not active for newly active flag', async () => {
+    const flagA: Flag = {
+      id: 1,
+      label: 'A',
+      isActive: false,
+      dependencies: [],
+    };
+    jest.spyOn(service, 'listFlags').mockResolvedValue([flagA]);
+
+    await expect(service.createFlag('C', true, [1])).rejects.toThrow(
+      'You cannot create this as an active flag',
+    );
+
+    expect(flagRepo.create).not.toHaveBeenCalled();
   });
 });

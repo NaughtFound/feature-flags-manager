@@ -97,6 +97,24 @@ export class FlagsService {
     return flag;
   }
 
+  async hasChildren(id: number) {
+    const count = await this.flagRepo
+      .createQueryBuilder('flag')
+      .innerJoin('flag.dependencies', 'dependency')
+      .where('dependency.id = :id', { id })
+      .getCount();
+
+    return count > 0;
+  }
+
+  async findChildren(id: number) {
+    return this.flagRepo
+      .createQueryBuilder('flag')
+      .innerJoin('flag.dependencies', 'dependency')
+      .where('dependency.id = :id', { id })
+      .getMany();
+  }
+
   async activateFlag(id: number) {
     const flag = await this.findFlag(id);
 
@@ -108,5 +126,39 @@ export class FlagsService {
     flag.isActive = true;
 
     await this.flagRepo.save(flag);
+  }
+
+  async deactivateFlag(id: number, autoDisable: boolean = false) {
+    const flag = await this.findFlag(id);
+    const hasChildren = await this.hasChildren(id);
+
+    if (hasChildren && !autoDisable)
+      throw Error(
+        'You cannot disable this flag with autoDisable=false. Try autoDisable=True',
+      );
+
+    const toDisable = [flag.id];
+    const stack: number[] = [];
+    const visited = new Set<number>();
+
+    if (hasChildren) stack.push(flag.id);
+
+    while (stack.length > 0) {
+      const cid = stack.pop()!;
+      if (visited.has(cid)) continue;
+      visited.add(cid);
+
+      const children = await this.findChildren(cid);
+
+      for (const child of children) {
+        if (visited.has(child.id)) continue;
+        toDisable.push(child.id);
+        stack.push(child.id);
+      }
+    }
+
+    await this.flagRepo.update(toDisable, {
+      isActive: false,
+    });
   }
 }

@@ -23,6 +23,7 @@ describe('FlagsService', () => {
             create: jest.fn(),
             findOne: jest.fn(),
             save: jest.fn(),
+            update: jest.fn(),
           },
         },
       ],
@@ -30,6 +31,8 @@ describe('FlagsService', () => {
 
     service = module.get<FlagsService>(FlagsService);
     flagRepo = module.get(getRepositoryToken(Flag));
+
+    service.findChildren = jest.fn();
   });
 
   it('should be defined', () => {
@@ -206,5 +209,63 @@ describe('FlagsService', () => {
     );
 
     expect(flagRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('should throw if it has children and autoDisable=false', async () => {
+    const flagA: Flag = {
+      id: 1,
+      label: 'A',
+      isActive: false,
+      dependencies: [],
+    };
+
+    jest.spyOn(service, 'findFlag').mockResolvedValue(flagA);
+    jest.spyOn(service, 'hasChildren').mockResolvedValue(true);
+
+    await expect(service.deactivateFlag(1, false)).rejects.toThrow(
+      'You cannot disable this flag with autoDisable=false. Try autoDisable=True',
+    );
+
+    expect(flagRepo.update).not.toHaveBeenCalled();
+  });
+
+  it('should deactivate only the flag if it has no children', async () => {
+    const flagA: Flag = {
+      id: 1,
+      label: 'A',
+      isActive: false,
+      dependencies: [],
+    };
+
+    jest.spyOn(service, 'findFlag').mockResolvedValue(flagA);
+    jest.spyOn(service, 'hasChildren').mockResolvedValue(false);
+
+    await service.deactivateFlag(1, false);
+
+    expect(flagRepo.update).toHaveBeenCalledWith([1], { isActive: false });
+  });
+
+  it('should deactivate flag and descendants if has children and autoDisable=true', async () => {
+    const flagA: Flag = {
+      id: 1,
+      label: 'A',
+      isActive: false,
+      dependencies: [],
+    };
+
+    jest.spyOn(service, 'findFlag').mockResolvedValue(flagA);
+    jest.spyOn(service, 'hasChildren').mockResolvedValue(true);
+
+    (service.findChildren as jest.Mock)
+      .mockImplementationOnce(async (id: number) => [{ id: 2 }, { id: 3 }])
+      .mockImplementationOnce(async (id: number) => [{ id: 4 }])
+      .mockImplementationOnce(async () => [])
+      .mockImplementationOnce(async () => []);
+
+    await service.deactivateFlag(1, true);
+
+    expect(flagRepo.update).toHaveBeenCalledWith([1, 2, 3, 4], {
+      isActive: false,
+    });
   });
 });
